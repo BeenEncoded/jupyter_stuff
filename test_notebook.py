@@ -5,7 +5,15 @@ import shutil, os
 import urllib.request as request
 from contextlib import closing
 
+def uncompress_raindata(path: str="") -> None:
+    newfolder = (os.path.dirname(path) + os.path.sep + os.path.splitext(os.path.basename(path))[0])
+    os.mkdir(newfolder)
+    shutil.move(path, newfolder)
+    path = newfolder + os.path.sep + os.path.basename(path)
+    !uncompress $path
+
 def download_file(url, path: str="") -> None:
+    if os.path.exists(path): return
     with closing(request.urlopen(url)) as r:
         with open(path, 'wb') as f:
             print("Downloading...")
@@ -13,48 +21,9 @@ def download_file(url, path: str="") -> None:
 
 if not os.path.exists("datafiles"):
     os.mkdir("datafiles")
-download_file(r"ftp://ftp.ncdc.noaa.gov/pub/data/hourly_precip-3240/01/3240_01_1948-1998.tar.Z", "./datafiles/test.tar.Z")
+download_file(r"ftp://ftp.ncdc.noaa.gov/pub/data/hourly_precip-3240/91/3240_91_2011-2011.tar.Z", "./datafiles/test.tar.Z")
+if os.path.exists("./datafiles/test.tar.Z"): print("Downloaded Successfully!")
+else: print("Download failed!")
 
-# %%
-import zlib, gzip, os
-
-def decompress_gzfile(compfile, decompfile, blocksize=1024):
-    file = gzip.open(compfile, 'rb')
-    ofile = open(decompfile, 'wb')
-    finished = False
-    while not finished:
-        data = file.read(blocksize)
-        finished = (len(data) == 0)
-        ofile.write(data)
-    file.close()
-    ofile.close()
-
-def decompress_file(compfile, decompfile, blocksize: int=1024):
-    if not os.path.isfile(compfile):
-        print(f"Error: {compfile} is not a file!")
-        return
-    dc = zlib.decompressobj()
-
-    print("initiating decompression...")
-    with open(compfile, 'rb') as file:
-        with open(decompfile, 'wb') as ofile:
-            complete = False
-            while not complete:
-                data = file.read(blocksize)
-                complete = (data == b"")
-                try:
-                    ofile.write(dc.decompress(data))
-                except Exception as e:
-                    if "Error -3" in str(e):
-                        print(str(e))
-                        dc = zlib.decompressobj(-zlib.MAX_WBITS)
-                        continue
-                    else:
-                        raise
-    print("z-decompress complete")
-
-decompress_file("./datafiles/test.tar.Z", "./test.tar")
-
-# %%
-print("This is for a test change")
+uncompress_raindata("./datafiles/test.tar.Z")
 # %%
