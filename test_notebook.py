@@ -7,10 +7,22 @@ from contextlib import closing
 
 def uncompress_raindata(path: str="") -> None:
     newfolder = (os.path.dirname(path) + os.path.sep + os.path.splitext(os.path.basename(path))[0])
-    os.mkdir(newfolder)
+    if not os.path.isdir(newfolder): os.mkdir(newfolder)
+    newpath = newfolder + os.path.sep + os.path.basename(path)
+    if os.path.isfile(newpath): os.remove(newpath)
     shutil.move(path, newfolder)
-    path = newfolder + os.path.sep + os.path.basename(path)
-    !uncompress $path
+    !uncompress -rNf $newpath
+
+    #so if we uncompress as we walk we will invalidate the iterator.  Shit will hit the fan.
+    # We need to create a list of paths and then uncompress them after walking.
+    uncompresslist = []
+    for root, folders, files in os.walk(newfolder): 
+        for file in files:
+            uncompresslist.append(root + os.path.sep + file)
+    for file in uncompresslist:
+        print(f"Uncompressing {file}")
+        !tar --overwrite --directory=$newfolder -xf $file
+    print("Decompression complete!")
 
 def download_file(url, path: str="") -> None:
     if os.path.exists(path): return
@@ -21,9 +33,10 @@ def download_file(url, path: str="") -> None:
 
 if not os.path.exists("datafiles"):
     os.mkdir("datafiles")
-download_file(r"ftp://ftp.ncdc.noaa.gov/pub/data/hourly_precip-3240/91/3240_91_2011-2011.tar.Z", "./datafiles/test.tar.Z")
+
+download_file(r"ftp://ftp.ncdc.noaa.gov/pub/data/hourly_precip-3240/09", "./datafiles/test")
 if os.path.exists("./datafiles/test.tar.Z"): print("Downloaded Successfully!")
 else: print("Download failed!")
 
-uncompress_raindata("./datafiles/test.tar.Z")
+#uncompress_raindata("./datafiles/test.tar.Z")
 # %%
